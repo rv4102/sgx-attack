@@ -3,11 +3,14 @@ enclave {
 
     trusted {
         /* define ECALLs here. */
-        public int generate_random_number(void);
+        public void ecall_1(long event_fd);
+        public void ecall_2(long event_fd);
     };
 
     untrusted {
         /* define OCALLs here. */
-        void ocall_print([in, string]const char* str);
+        void enable_perf_event(long event_fd);
+        void disable_perf_event(long event_fd);
+        void read_perf_event(long event_fd);
     };
 };

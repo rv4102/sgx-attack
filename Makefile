@@ -35,6 +35,11 @@ SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= SIM
 SGX_ARCH ?= x64
 
+# SGX in Release mode
+SGX_DEBUG ?= 0
+SGX_PRERELEASE ?= 0
+
+
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -93,7 +98,7 @@ else
 endif
 
 App_Cpp_Flags := $(App_C_Flags) -std=c++11
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread
+App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -Wl,-rpath=/opt/intel/sgxsdk/sdk_libs
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -196,7 +201,7 @@ Enclave/Enclave_t.o: Enclave/Enclave_t.c
 	@echo "CC   <=  $<"
 
 Enclave/%.o: Enclave/%.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@$(CXX) $(Enclave_Cpp_Flags) -O0 -masm=intel -c $< -o $@
 	@echo "CXX  <=  $<"
 
 $(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects)
@@ -208,6 +213,13 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 	@echo "SIGN =>  $@"
 
 .PHONY: clean
+
+readings:
+	@sudo modprobe msr
+	@taskset -c 5 sudo ./app 2 > sgx_ecall2_run1.csv
+	@taskset -c 5 sudo ./app 2 > sgx_ecall2_run2.csv
+	@taskset -c 5 sudo ./app 1 > sgx_ecall1_run1.csv
+	@taskset -c 5 sudo ./app 1 > sgx_ecall1_run2.csv
 
 clean:
 	@rm -f $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.*
